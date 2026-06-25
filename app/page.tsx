@@ -2,7 +2,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { BOOKS, ERA_ORDER, ERA_META } from '@/lib/books'
-import EraTag from '@/components/EraTag'
 
 const DONE_KEY = 'philos-done-v2'
 
