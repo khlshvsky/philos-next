@@ -67,6 +67,7 @@ export default function BookDetail({ book, prev, next }: Props) {
   const [localReview, setLocalReview] = useState('')
   // B4: autosave status only, no save button
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [reviewEditing, setReviewEditing] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [myRating, setMyRating] = useState<number | null>(null)
   const [avgRating, setAvgRating] = useState<number | null>(null)
@@ -295,26 +296,62 @@ export default function BookDetail({ book, prev, next }: Props) {
 
         <hr style={{ border: 'none', borderTop: `1px solid ${C.paper3}`, margin: '0 0 2rem' }} />
 
-        {/* B4: review — autosave only, no manual save button */}
+        {/* My review — view mode / edit mode */}
         <section style={{ marginBottom: '2.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
             <h2 style={{ fontFamily: C.serif, fontSize: '1.25rem', fontWeight: 400, color: C.ink, margin: 0 }}>
               Моя рецензия
               {!user && <span style={{ fontSize: 13, color: C.ink3, fontFamily: C.sans, fontWeight: 400, marginLeft: 8 }}>
-                · <button onClick={() => setShowAuth(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.gold, fontSize: 13, fontFamily: C.sans }}>войди</button> чтобы опубликовать
+                · <button onClick={() => setShowAuth(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.gold, fontSize: 13, fontFamily: C.sans }}>войди</button> чтобы написать
               </span>}
             </h2>
-            <span style={{ fontSize: 11, fontFamily: C.sans, color: autoSaveStatus === 'saved' ? '#1D9E75' : C.ink3, transition: 'color 0.3s' }}>
-              {autoSaveStatus === 'saving' ? 'Сохраняем…' : autoSaveStatus === 'saved' ? '✓ Сохранено' : 'Автосохранение'}
-            </span>
+            {user && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {autoSaveStatus !== 'idle' && (
+                  <span style={{ fontSize: 11, fontFamily: C.sans, color: autoSaveStatus === 'saved' ? '#1D9E75' : C.ink3, transition: 'color 0.3s' }}>
+                    {autoSaveStatus === 'saving' ? 'Сохраняем…' : '✓ Сохранено'}
+                  </span>
+                )}
+                {reviewEditing ? (
+                  <button onClick={() => setReviewEditing(false)} style={{ fontSize: 12, padding: '3px 12px', borderRadius: 20, border: `1px solid ${C.paper3}`, background: '#fff', color: C.ink2, cursor: 'pointer', fontFamily: C.sans }}>
+                    Готово
+                  </button>
+                ) : (
+                  <button onClick={() => setReviewEditing(true)} style={{ fontSize: 12, padding: '3px 12px', borderRadius: 20, border: `1px solid ${C.paper3}`, background: '#fff', color: C.ink2, cursor: 'pointer', fontFamily: C.sans, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    {localReview ? 'Редактировать' : 'Написать рецензию'}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-          <textarea
-            value={localReview}
-            onChange={e => onReviewChange(e.target.value)}
-            placeholder="Запиши мысли об этой книге: главная идея, что зацепило, с чем не согласен…"
-            rows={6}
-            style={{ width: '100%', padding: '12px 14px', border: `1px solid ${C.paper3}`, borderRadius: 8, background: '#fff', fontFamily: C.sans, fontSize: 14, lineHeight: 1.6, color: C.ink, resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
-          />
+
+          {/* View mode */}
+          {!reviewEditing && (
+            localReview ? (
+              <p style={{ fontSize: 14, color: C.ink, lineHeight: 1.75, margin: 0, fontFamily: C.sans, whiteSpace: 'pre-wrap', padding: '1rem 1.25rem', background: '#fff', border: `1px solid ${C.paper3}`, borderRadius: 8 }}>
+                {localReview}
+              </p>
+            ) : user ? (
+              <button onClick={() => setReviewEditing(true)} style={{ width: '100%', padding: '1.25rem', border: `1px dashed ${C.paper3}`, borderRadius: 8, background: 'transparent', color: C.ink3, fontFamily: C.sans, fontSize: 14, cursor: 'pointer', textAlign: 'center', transition: 'border-color 0.15s, color 0.15s' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.gold; (e.currentTarget as HTMLButtonElement).style.color = C.gold }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.paper3; (e.currentTarget as HTMLButtonElement).style.color = C.ink3 }}>
+                + Написать рецензию
+              </button>
+            ) : null
+          )}
+
+          {/* Edit mode */}
+          {reviewEditing && (
+            <textarea
+              value={localReview}
+              onChange={e => onReviewChange(e.target.value)}
+              placeholder="Запиши мысли об этой книге: главная идея, что зацепило, с чем не согласен…"
+              rows={6}
+              autoFocus
+              style={{ width: '100%', padding: '12px 14px', border: `1px solid ${C.gold}`, borderRadius: 8, background: '#fff', fontFamily: C.sans, fontSize: 14, lineHeight: 1.6, color: C.ink, resize: 'vertical', outline: 'none', boxSizing: 'border-box', boxShadow: '0 0 0 3px rgba(184,134,11,0.1)' }}
+            />
+          )}
         </section>
 
         {/* Public reviews */}
