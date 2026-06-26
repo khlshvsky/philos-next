@@ -26,6 +26,40 @@ const REVIEWS_KEY = 'philos-reviews-v2'
 interface Book { n: number; t: string; a: string; y: string; era: string; h: number }
 interface Props { book: Book; prev: Book | null; next: Book | null }
 
+// ── Sort control for reviews ──────────────────────────────────────
+type ReviewSortKey = 'date_desc' | 'date_asc' | 'likes_desc'
+
+const REVIEW_SORT_LABELS: Record<ReviewSortKey, string> = {
+  date_desc:  'Сначала новые',
+  date_asc:   'Сначала старые',
+  likes_desc: 'По лайкам',
+}
+
+function ReviewSort({ reviews, onSort }: { reviews: any[]; onSort: (sorted: any[]) => void }) {
+  const [active, setActive] = useState<ReviewSortKey>('date_desc')
+
+  const apply = (key: ReviewSortKey) => {
+    setActive(key)
+    const sorted = [...reviews].sort((a, b) => {
+      if (key === 'date_desc') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      if (key === 'date_asc')  return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      if (key === 'likes_desc') return (b.likeCount ?? 0) - (a.likeCount ?? 0)
+      return 0
+    })
+    onSort(sorted)
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 4 }}>
+      {(Object.keys(REVIEW_SORT_LABELS) as ReviewSortKey[]).map(k => (
+        <button key={k} onClick={() => apply(k)} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, border: `1px solid ${active === k ? '#1a1814' : '#e4e0d8'}`, background: active === k ? '#1a1814' : '#fff', color: active === k ? '#f5ecd0' : '#8a8480', cursor: 'pointer', fontFamily: "'Inter', system-ui, sans-serif", whiteSpace: 'nowrap', transition: 'all 0.12s' }}>
+          {REVIEW_SORT_LABELS[k]}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function BookDetail({ book, prev, next }: Props) {
   const { user, signOut } = useUser()
   const [showAuth, setShowAuth] = useState(false)
@@ -285,10 +319,15 @@ export default function BookDetail({ book, prev, next }: Props) {
 
         {/* Public reviews */}
         <section style={{ marginBottom: '2.5rem' }}>
-          <h2 style={{ fontFamily: C.serif, fontSize: '1.25rem', fontWeight: 400, margin: '0 0 1rem', color: C.ink }}>
-            Рецензии читателей
-            {avgRating !== null && <span style={{ fontSize: 13, color: C.ink3, fontFamily: C.sans, fontWeight: 400, marginLeft: 8 }}>· средняя оценка {avgRating}/10</span>}
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 8 }}>
+            <h2 style={{ fontFamily: C.serif, fontSize: '1.25rem', fontWeight: 400, color: C.ink, margin: 0 }}>
+              Рецензии читателей
+              {avgRating !== null && <span style={{ fontSize: 13, color: C.ink3, fontFamily: C.sans, fontWeight: 400, marginLeft: 8 }}>· {avgRating}/10</span>}
+            </h2>
+            {publicReviews.length > 1 && (
+              <ReviewSort reviews={publicReviews} onSort={setPublicReviews} />
+            )}
+          </div>
 
           {reviewsLoading ? (
             <p style={{ color: C.ink3, fontFamily: C.sans, fontSize: 14 }}>Загружаем…</p>
