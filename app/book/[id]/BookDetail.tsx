@@ -5,6 +5,8 @@ import WikiCover from '@/components/WikiCover'
 import EraTag from '@/components/EraTag'
 import StarRating from '@/components/StarRating'
 import AuthModal from '@/components/AuthModal'
+import ReviewCard from '@/components/ReviewCard'
+import TagsSection from '@/components/TagsSection'
 import { ERA_META } from '@/lib/books'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/lib/useUser'
@@ -66,23 +68,41 @@ export default function BookDetail({ book, prev, next }: Props) {
   async function loadPublicData() {
     setReviewsLoading(true)
     try {
-      const [{ data: reviewData }, { data: ratingData }, { data: progressData }] = await Promise.all([
-        supabase.from('reviews').select('*, profiles(username)').eq('book_n', book.n).order('created_at', { ascending: false }),
+      const [{ data: reviewData }, { data: ratingData }, { data: progressData }, { data: likesData }] = await Promise.all([
+        supabase.from('reviews').select('*, profiles(username, avatar_url)').eq('book_n', book.n).order('created_at', { ascending: false }),
         supabase.from('ratings').select('user_id, rating').eq('book_n', book.n),
-        // B3: count readers
         supabase.from('reading_progress').select('id', { count: 'exact' }).eq('book_n', book.n).eq('done', true),
+        supabase.from('review_likes').select('review_id, user_id'),
       ])
 
       const ratingMap: Record<string, number> = {}
-      if (ratingData) {
+      if (ratingData && ratingData.length > 0) {
         ratingData.forEach(r => { ratingMap[r.user_id] = r.rating })
         const avg = ratingData.reduce((s, r) => s + r.rating, 0) / ratingData.length
         setAvgRating(Math.round(avg * 10) / 10)
         setRatingCount(ratingData.length)
         if (user) setMyRating(ratingMap[user.id] ?? null)
+      } else {
+        if (user) setMyRating(null)
       }
 
-      if (reviewData) setPublicReviews(reviewData.map(r => ({ ...r, userRating: ratingMap[r.user_id] ?? null })))
+      // Build like map
+      const likeMap: Record<string, { count: number; mine: boolean }> = {}
+      ;(likesData || []).forEach(l => {
+        if (!likeMap[l.review_id]) likeMap[l.review_id] = { count: 0, mine: false }
+        likeMap[l.review_id].count++
+        if (l.user_id === user?.id) likeMap[l.review_id].mine = true
+      })
+
+      if (reviewData) {
+        setPublicReviews(reviewData.map(r => ({
+          ...r,
+          userRating: ratingMap[r.user_id] ?? null,
+          likeCount: likeMap[r.id]?.count || 0,
+          likedByMe: likeMap[r.id]?.mine || false,
+        })))
+      }
+
       if (progressData !== null) setReadCount((progressData as any).length || 0)
     } catch {}
     setReviewsLoading(false)
@@ -281,27 +301,23 @@ export default function BookDetail({ book, prev, next }: Props) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {publicReviews.map((r: any) => (
-                <div key={r.id} style={{ padding: '1rem 1.25rem', background: '#fff', border: `1px solid ${C.paper3}`, borderRadius: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: C.ink, fontFamily: C.sans }}>{r.profiles?.username || 'Читатель'}</span>
-                      {r.userRating && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: C.goldLt, color: C.gold, fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 20, fontFamily: C.sans }}>
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                          {r.userRating}/10
-                        </span>
-                      )}
-                    </div>
-                    <span style={{ fontSize: 11, color: C.ink3, fontFamily: C.sans }}>
-                      {new Date(r.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: 14, color: C.ink, lineHeight: 1.65, margin: 0, fontFamily: C.sans, whiteSpace: 'pre-wrap' }}>{r.text}</p>
-                </div>
+                <ReviewCard
+                  key={r.id}
+                  review={r}
+                  userId={user?.id ?? null}
+                  onAuthRequired={() => setShowAuth(true)}
+                />
               ))}
             </div>
           )}
         </section>
+
+        {/* Tags & Discussions */}
+        <TagsSection
+          bookN={book.n}
+          userId={user?.id ?? null}
+          onAuthRequired={() => setShowAuth(true)}
+        />
 
         {/* Prev / Next */}
         <nav style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
