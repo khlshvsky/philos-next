@@ -118,7 +118,7 @@ export default function HomePage() {
         </div>
 
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '1.5rem' }}>
-          <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.gold, marginBottom: 14, display: 'block' }}>Философский канон</span>
+          <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.gold, marginBottom: 14, display: 'inline-block', background: 'rgba(10,8,4,0.45)', padding: '4px 14px', borderRadius: 20, backdropFilter: 'blur(4px)' }}>Философский канон</span>
           <h1 style={{ fontFamily: C.serif, fontSize: 'clamp(2rem,5vw,3.5rem)', fontWeight: 700, color: '#ffffff', lineHeight: 1.1, margin: '0 0 0.75rem', textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}>
             121 главная книга<br />по философии
           </h1>
