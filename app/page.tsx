@@ -61,9 +61,9 @@ export default function HomePage() {
         .select('tag_id, tags(id, name, book_n)')
         .gte('created_at', oneWeekAgo),
 
-      // Recent reviews
+      // Recent reviews with ratings
       supabase.from('reviews')
-        .select('id, book_n, text, created_at, profiles(username, avatar_url)')
+        .select('id, book_n, text, created_at, user_id, profiles(username, avatar_url)')
         .order('created_at', { ascending: false })
         .limit(6),
 
@@ -100,7 +100,16 @@ export default function HomePage() {
       setHotTags(sorted)
     }
 
-    if (reviewData) setRecentReviews(reviewData as any)
+    if (reviewData && reviewData.length > 0) {
+      // Fetch ratings for these specific user+book combinations
+      const { data: ratingsData } = await supabase
+        .from('ratings')
+        .select('user_id, book_n, rating')
+        .in('user_id', reviewData.map((r: any) => r.user_id))
+      const ratingMap: Record<string, number> = {}
+      ;(ratingsData || []).forEach((r: any) => { ratingMap[`${r.user_id}_${r.book_n}`] = r.rating })
+      setRecentReviews(reviewData.map((r: any) => ({ ...r, rating: ratingMap[`${r.user_id}_${r.book_n}`] ?? null })) as any)
+    }
 
     // Aggregate top readers
     if (readerData) {
@@ -259,6 +268,12 @@ export default function HomePage() {
                           }
                         </div>
                         <span style={{ fontSize: 12, fontWeight: 600, color: C.ink2, fontFamily: C.sans }}>{username}</span>
+                        {(r as any).rating && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: C.goldLt, color: C.gold, fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 20, fontFamily: C.sans }}>
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+                            {(r as any).rating}/10
+                          </span>
+                        )}
                         <span style={{ fontSize: 11, color: C.ink3, fontFamily: C.sans, marginLeft: 'auto' }}>
                           {new Date(r.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
                         </span>
