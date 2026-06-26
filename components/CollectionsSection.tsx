@@ -216,7 +216,7 @@ function CollectionCard({ collection, userId, isOwner, onUpdate, compact, onAuth
   const collectionUrl = `/philos-next/collection?id=${collection.id}`
 
   return (
-    <div style={{ background: '#fff', border: `1px solid ${C.paper3}`, borderRadius: 10, overflow: 'hidden', transition: 'border-color 0.15s' }}
+    <div style={{ background: '#fff', border: `1px solid ${C.paper3}`, borderRadius: 10, transition: 'border-color 0.15s', position: 'relative' }}
       onMouseEnter={e => (e.currentTarget.style.borderColor = C.gold)}
       onMouseLeave={e => (e.currentTarget.style.borderColor = C.paper3)}>
 
@@ -305,7 +305,7 @@ function CollectionCard({ collection, userId, isOwner, onUpdate, compact, onAuth
               <button onClick={() => { setAddingBook(false); setBookQuery('') }}
                 style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: C.ink3, fontSize: 16 }}>×</button>
               {matchedBooks.length > 0 && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: `1px solid ${C.paper3}`, borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 50, marginTop: 4, maxHeight: 240, overflowY: 'auto' }}>
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: `1px solid ${C.paper3}`, borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', zIndex: 500, marginTop: 4, maxHeight: 240, overflowY: 'auto' }}>
                   {matchedBooks.map(b => (
                     <button key={b.n} onClick={() => addBook(b.n)}
                       style={{ width: '100%', padding: '8px 12px', background: 'none', border: 'none', borderBottom: `1px solid ${C.paper3}`, cursor: 'pointer', textAlign: 'left', fontFamily: C.sans, fontSize: 13, color: C.ink, display: 'flex', alignItems: 'center', gap: 8 }}
