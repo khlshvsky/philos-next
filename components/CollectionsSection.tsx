@@ -155,9 +155,8 @@ function CollectionCard({ collection, userId, onUpdate, compact }: { collection:
 
   return (
     <div style={{ background: '#fff', border: `1px solid ${C.paper3}`, borderRadius: 10, overflow: 'hidden' }}>
-      <div style={{ padding: '12px 14px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}
-        onClick={() => !compact && setExpanded(e => !e)}>
-        <div style={{ flex: 1 }}>
+      <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+        <div style={{ flex: 1, cursor: !compact ? 'pointer' : 'default' }} onClick={() => !compact && setExpanded(e => !e)}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
             <span style={{ fontFamily: C.serif, fontSize: 15, fontWeight: 500, color: C.ink }}>{collection.title}</span>
             {!collection.is_public && <span style={{ fontSize: 10, color: C.ink3, background: C.paper2, padding: '1px 6px', borderRadius: 8, fontFamily: C.sans }}>приватная</span>}
@@ -165,15 +164,23 @@ function CollectionCard({ collection, userId, onUpdate, compact }: { collection:
           {collection.description && <p style={{ fontSize: 12, color: C.ink2, margin: 0, fontFamily: C.sans }}>{collection.description}</p>}
           <p style={{ fontSize: 11, color: C.ink3, margin: '4px 0 0', fontFamily: C.sans }}>{collection.bookCount} {collection.bookCount === 1 ? 'книга' : collection.bookCount! < 5 ? 'книги' : 'книг'}</p>
         </div>
-        {previewBooks.length > 0 && (
-          <div style={{ display: 'flex', gap: 2 }}>
-            {previewBooks.map(b => (
-              <div key={b.n} style={{ width: 28, height: 40, borderRadius: 3, background: `hsl(${[...b.a].reduce((a,c)=>a+c.charCodeAt(0),0)%360},30%,35%)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 9, color: '#fff', fontFamily: C.serif }}>{b.t[0]}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {collection.is_public && (
+            <a href={`/philos-next/collection?id=${collection.id}`} title="Открыть страницу подборки"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', border: `1px solid ${C.paper3}`, color: C.ink3, textDecoration: 'none' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            </a>
+          )}
+          {previewBooks.length > 0 && (
+            <div style={{ display: 'flex', gap: 2 }}>
+              {previewBooks.map(b => (
+                <div key={b.n} style={{ width: 28, height: 40, borderRadius: 3, background: `hsl(${[...b.a].reduce((a,c)=>a+c.charCodeAt(0),0)%360},30%,35%)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 9, color: '#fff', fontFamily: C.serif }}>{b.t[0]}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {expanded && !compact && (
