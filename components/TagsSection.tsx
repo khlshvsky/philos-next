@@ -23,8 +23,12 @@ interface Props {
   onAuthRequired: () => void
 }
 
+type TagSortKey = 'date' | 'posts'
+
 export default function TagsSection({ bookN, userId, onAuthRequired }: Props) {
   const [tags, setTags] = useState<Tag[]>([])
+  const [sortedTags, setSortedTags] = useState<Tag[]>([])
+  const [tagSort, setTagSort] = useState<TagSortKey>('posts')
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
   const [newTag, setNewTag] = useState('')
@@ -33,6 +37,14 @@ export default function TagsSection({ bookN, userId, onAuthRequired }: Props) {
   const [error, setError] = useState('')
 
   useEffect(() => { loadTags() }, [bookN])
+
+  useEffect(() => {
+    const sorted = [...tags].sort((a, b) => {
+      if (tagSort === 'posts') return b.postCount - a.postCount
+      return 0 // 'date' — already in creation order from DB
+    })
+    setSortedTags(sorted)
+  }, [tags, tagSort])
 
   async function loadTags() {
     setLoading(true)
@@ -82,16 +94,28 @@ export default function TagsSection({ bookN, userId, onAuthRequired }: Props) {
   return (
     <>
       <section style={{ marginBottom: '2.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: 8 }}>
           <h2 style={{ fontFamily: C.serif, fontSize: '1.25rem', fontWeight: 400, color: C.ink, margin: 0 }}>
             Обсуждения по темам
           </h2>
-          <button
-            onClick={() => { if (!userId) { onAuthRequired(); return } setAdding(a => !a); setError('') }}
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, border: `1px solid ${C.paper3}`, background: adding ? C.ink : '#fff', color: adding ? C.goldLt : C.ink2, cursor: 'pointer', fontSize: 12, fontFamily: C.sans }}
-          >
-            {adding ? '× Отмена' : '+ Новая тема'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {/* Sort */}
+            {tags.length > 1 && (
+              <div style={{ display: 'flex', gap: 4 }}>
+                {([['posts', 'По сообщениям'], ['date', 'По дате']] as [TagSortKey, string][]).map(([k, l]) => (
+                  <button key={k} onClick={() => setTagSort(k)} style={{ fontSize: 11, padding: '3px 9px', borderRadius: 20, border: `1px solid ${tagSort === k ? C.ink : C.paper3}`, background: tagSort === k ? C.ink : '#fff', color: tagSort === k ? C.goldLt : C.ink3, cursor: 'pointer', fontFamily: C.sans, whiteSpace: 'nowrap', transition: 'all 0.12s' }}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => { if (!userId) { onAuthRequired(); return } setAdding(a => !a); setError('') }}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, border: `1px solid ${C.paper3}`, background: adding ? C.ink : '#fff', color: adding ? C.goldLt : C.ink2, cursor: 'pointer', fontSize: 12, fontFamily: C.sans }}
+            >
+              {adding ? '× Отмена' : '+ Новая тема'}
+            </button>
+          </div>
         </div>
 
         {/* Add tag form */}
@@ -133,7 +157,7 @@ export default function TagsSection({ bookN, userId, onAuthRequired }: Props) {
           </div>
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {tags.map(tag => (
+            {sortedTags.map(tag => (
               <button
                 key={tag.id}
                 onClick={() => setActiveTag(activeTag?.id === tag.id ? null : tag)}
