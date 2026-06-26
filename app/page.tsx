@@ -46,43 +46,64 @@ export default function HomePage() {
 
   return (
     <div>
-      <header style={{ background: 'var(--ink)', color: '#fff', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 2px 20px rgba(0,0,0,0.3)' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '1.25rem 1.5rem 0.75rem', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '1.5rem', flexWrap: 'wrap' }}>
-          <div>
-            <span style={{ display: 'block', fontSize: 10, fontWeight: 500, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 4 }}>Философский канон</span>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1.4rem,3vw,2rem)', fontWeight: 700, color: '#fff', lineHeight: 1.15, margin: 0 }}>121 главная книга<br />по философии</h1>
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>Хронологический порядок · один час в день</p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}>
-            {[{v:doneCount,l:'прочитано'},{v:BOOKS.length,l:'книг'},{v:totalHours,l:'часов'},{v:leftHours,l:'осталось ч.'}].map((s,i) => (
-              <div key={i} style={{ display:'flex',alignItems:'center' }}>
-                {i>0 && <div style={{ width:1,height:36,background:'rgba(255,255,255,0.12)' }}/>}
-                <div style={{ padding:'0.4rem 1rem',textAlign:'center' }}>
-                  <div style={{ fontFamily:'var(--font-serif)',fontSize:'1.35rem',color:'#fff',lineHeight:1 }}>{s.v}</div>
-                  <div style={{ fontSize:9,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2 }}>{s.l}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div style={{ height:3,background:'rgba(255,255,255,0.1)' }}>
-          <div style={{ height:'100%',background:'var(--gold)',width:`${pct}%`,transition:'width 0.4s' }}/>
-        </div>
-      </header>
+      {/* Hero */}
+      <div style={{ position: 'relative', width: '100%', height: 'clamp(280px, 40vw, 480px)', overflow: 'hidden' }}>
+        <img
+          src="/philos-next/hero.jpg"
+          alt="Своды православного храма"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }}
+        />
+        {/* dark overlay */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(10,8,4,0.35) 0%, rgba(10,8,4,0.65) 100%)' }} />
 
-      <main style={{ maxWidth:1100,margin:'0 auto',padding:'1.75rem 1.5rem 4rem' }}>
-        <div style={{ display:'flex',flexDirection:'column',gap:'0.75rem',marginBottom:'1.75rem' }}>
+        {/* centered text */}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '1.5rem' }}>
+          <span style={{ display: 'block', fontSize: 11, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#b8860b', marginBottom: 12 }}>Философский канон</span>
+          <h1 style={{ fontFamily: "'EB Garamond', Georgia, serif", fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 700, color: '#fff', lineHeight: 1.1, margin: '0 0 0.75rem', textShadow: '0 2px 20px rgba(0,0,0,0.4)' }}>
+            121 главная книга<br />по философии
+          </h1>
+          <p style={{ fontSize: 'clamp(13px, 2vw, 16px)', color: 'rgba(255,255,255,0.65)', margin: 0, letterSpacing: '0.03em' }}>
+            Хронологический порядок · один час в день
+          </p>
+        </div>
+      </div>
+
+      {/* Stats bar */}
+      <div style={{ background: '#1a1814', color: '#fff' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+          {[{v:doneCount,l:'прочитано'},{v:BOOKS.length,l:'книг'},{v:totalHours,l:'часов'},{v:leftHours,l:'осталось ч.'}].map((s,i) => (
+            <div key={i} style={{ display:'flex',alignItems:'center' }}>
+              {i>0 && <div style={{ width:1,height:40,background:'rgba(255,255,255,0.1)' }}/>}
+              <div style={{ padding:'0.6rem 1.5rem',textAlign:'center' }}>
+                <div style={{ fontFamily:"'EB Garamond', Georgia, serif",fontSize:'1.5rem',color:'#fff',lineHeight:1 }}>{s.v}</div>
+                <div style={{ fontSize:9,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:3 }}>{s.l}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* progress bar */}
+        <div style={{ height:3,background:'rgba(255,255,255,0.08)' }}>
+          <div style={{ height:'100%',background:'#b8860b',width:`${pct}%`,transition:'width 0.4s' }}/>
+        </div>
+      </div>
+
+      {/* Sticky controls bar */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 100, background: '#faf9f6', borderBottom: '1px solid #e4e0d8', boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0.75rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
           <input type="text" placeholder="Поиск по названию или автору…" value={query} onChange={e=>setQuery(e.target.value)}
-            style={{ width:'100%',maxWidth:400,padding:'9px 14px',border:'1px solid var(--paper-3)',borderRadius:8,background:'#fff',fontFamily:'var(--font-sans)',fontSize:14,color:'var(--ink)',outline:'none' }}
+            style={{ width:'100%',maxWidth:400,padding:'8px 14px',border:'1px solid #e4e0d8',borderRadius:8,background:'#fff',fontFamily:'var(--font-sans)',fontSize:14,color:'#1a1814',outline:'none' }}
           />
           <div style={{ display:'flex',flexWrap:'wrap',gap:6 }}>
             {['all',...ERA_ORDER].map(e => (
-              <button key={e} onClick={()=>setEra(e)} style={{ fontSize:12,padding:'5px 14px',borderRadius:20,border:`1px solid ${era===e?'var(--ink)':'var(--paper-3)'}`,background:era===e?'var(--ink)':'#fff',color:era===e?'var(--gold-lt)':'var(--ink-2)',cursor:'pointer',fontWeight:era===e?500:400 }}>
+              <button key={e} onClick={()=>setEra(e)} style={{ fontSize:12,padding:'4px 13px',borderRadius:20,border:`1px solid ${era===e?'#1a1814':'#e4e0d8'}`,background:era===e?'#1a1814':'#fff',color:era===e?'#f5ecd0':'#4a4640',cursor:'pointer',fontWeight:era===e?500:400 }}>
                 {e==='all'?'Все эпохи':e}
               </button>
             ))}
           </div>
         </div>
+      </div>
+
+      <main style={{ maxWidth:1100,margin:'0 auto',padding:'1.75rem 1.5rem 4rem' }}>
 
         {eras.map(eraName => {
           const group = filtered.filter(b => b.era === eraName)
