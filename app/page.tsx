@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { BOOKS } from '@/lib/books'
 import AuthModal from '@/components/AuthModal'
 import CollectionsSection from '@/components/CollectionsSection'
+import { useNotifCount } from '@/lib/useNotifCount'
 
 const C = {
   ink: '#1a1814', ink2: '#4a4640', ink3: '#8a8480',
@@ -129,6 +130,8 @@ export default function HomePage() {
     setLoading(false)
   }
 
+  const notifCount = useNotifCount(user?.id)
+
   const navStyle: React.CSSProperties = { position: 'absolute', top: 16, right: 20, zIndex: 10, display: 'flex', alignItems: 'center', gap: 10 }
 
   return (
@@ -144,6 +147,14 @@ export default function HomePage() {
         <div style={navStyle}>
           {!userLoading && (user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {notifCount > 0 && (
+                <Link href="/notifications" style={{ position: 'relative', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                  <span style={{ position: 'absolute', top: -3, right: -3, background: '#e74c3c', color: '#fff', fontSize: 9, fontWeight: 700, fontFamily: C.sans, borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {notifCount > 9 ? '9+' : notifCount}
+                  </span>
+                </Link>
+              )}
               <Link href="/profile" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, padding: '5px 12px 5px 6px' }}>
                 {profile?.avatar_url ? (
                   <img src={profile.avatar_url} style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }} alt="" />
@@ -189,7 +200,7 @@ export default function HomePage() {
 
       {/* ── Main content ── */}
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '2.5rem 1.5rem 4rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
 
           {/* ── Col 1: Popular books + Hot tags ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
