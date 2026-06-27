@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { BOOKS } from '@/lib/books'
 import WikiCover from '@/components/WikiCover'
 import { useUser } from '@/lib/useUser'
+import Header from '@/components/Header'
 
 const C = {
   ink: '#1a1814', ink2: '#4a4640', ink3: '#8a8480',
@@ -159,14 +160,7 @@ export default function CollectionPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: C.paper }}>
-      {/* Nav */}
-      <nav style={{ background: '#141210', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 6, color: C.gold, fontSize: 13, textDecoration: 'none', fontWeight: 500, fontFamily: C.sans }}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          Философский канон
-        </Link>
-        {!collection.is_public && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontFamily: C.sans, background: 'rgba(255,255,255,0.08)', padding: '3px 10px', borderRadius: 20 }}>приватная</span>}
-      </nav>
+      <Header activePage="collection" backHref="/" backLabel="Главная" />
 
       {/* Hero */}
       <div style={{ background: '#141210', padding: '2.5rem 1.5rem 2rem' }}>
