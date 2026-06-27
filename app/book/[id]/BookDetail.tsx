@@ -7,6 +7,7 @@ import StarRating from '@/components/StarRating'
 import AuthModal from '@/components/AuthModal'
 import ReviewCard from '@/components/ReviewCard'
 import TagsSection from '@/components/TagsSection'
+import Header from '@/components/Header'
 import { ERA_META } from '@/lib/books'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/lib/useUser'
@@ -209,43 +210,12 @@ export default function BookDetail({ book, prev, next }: Props) {
   }
 
   return (
-    // C3: fade-in animation on mount
     <div style={{ minHeight: '100vh', background: C.paper, color: C.ink, opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(8px)', transition: 'opacity 0.25s ease, transform 0.25s ease' }}>
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
 
-      {/* Nav */}
-      <nav style={{ background: '#141210', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 6, color: C.gold, fontSize: 13, textDecoration: 'none', fontWeight: 500, fontFamily: C.sans }}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            Весь список
-          </Link>
-          <span style={{ color: 'rgba(255,255,255,0.2)' }}>·</span>
-          <EraTag era={book.era} small />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {user ? (
-            <>
-              {notifCount > 0 && (
-                <Link href="/notifications" style={{ position: 'relative', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                  <span style={{ position: 'absolute', top: -3, right: -3, background: '#e74c3c', color: '#fff', fontSize: 8, fontWeight: 700, fontFamily: C.sans, borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {notifCount > 9 ? '9+' : notifCount}
-                  </span>
-                </Link>
-              )}
-              <Link href="/profile" style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: C.sans, textDecoration: 'none' }}>
-                {profile?.username || user.email?.split('@')[0]}
-              </Link>
-              <button onClick={signOut} style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: C.sans }}>Выйти</button>
-            </>
-          ) : (
-            <button onClick={() => setShowAuth(true)} style={{ fontSize: 13, color: C.gold, background: 'none', border: `1px solid rgba(184,134,11,0.4)`, borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontFamily: C.sans }}>Войти</button>
-          )}
-        </div>
-      </nav>
+      <Header activePage="book" backHref="/library" backLabel="Библиотека" />
 
-      <main style={{ maxWidth: 780, margin: '0 auto', padding: '2.5rem 1.5rem 4rem' }}>
+      <main style={{ maxWidth: 780, margin: '0 auto', padding: '2rem 1.5rem 4rem' }}>
         {/* B1: book header — cover + info side by side, vertically centered */}
         <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap' }}>
           <div style={{ flexShrink: 0 }}>
