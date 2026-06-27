@@ -1,11 +1,10 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { BOOKS, ERA_ORDER, ERA_META } from '@/lib/books'
 import { useUser } from '@/lib/useUser'
 import { supabase } from '@/lib/supabase'
-import { BOOKS } from '@/lib/books'
 import AuthModal from '@/components/AuthModal'
-import CollectionsSection from '@/components/CollectionsSection'
 import Header from '@/components/Header'
 
 const C = {
@@ -16,316 +15,241 @@ const C = {
   sans: "'Inter', system-ui, sans-serif",
 }
 
-interface TopBook { book_n: number; count: number }
-interface HotTag { id: string; name: string; book_n: number; count: number }
-interface RecentReview { id: string; book_n: number; text: string; created_at: string; profiles: { username: string; avatar_url?: string } }
-interface TopReader { user_id: string; count: number; profiles: { username: string; avatar_url?: string } }
+const DONE_KEY = 'philos-done-v2'
+
+function useProgress() {
+  const [done, setDone] = useState<Set<number>>(new Set())
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DONE_KEY)
+      if (raw) setDone(new Set(JSON.parse(raw)))
+    } catch {}
+  }, [])
+  const toggle = (n: number) => {
+    setDone(prev => {
+      const next = new Set(prev)
+      if (next.has(n)) next.delete(n); else next.add(n)
+      try { localStorage.setItem(DONE_KEY, JSON.stringify([...next])) } catch {}
+      return next
+    })
+  }
+  return { done, toggle }
+}
+
+// A6: hover effect hook
+function useHover() {
+  const [hovered, setHovered] = useState<number | null>(null)
+  return { hovered, onEnter: (n: number) => setHovered(n), onLeave: () => setHovered(null) }
+}
 
 export default function HomePage() {
-  const { user } = useUser()
+  const { done, toggle } = useProgress()
+  const { user, loading: userLoading, signOut } = useUser()
+  const { hovered, onEnter, onLeave } = useHover()
+  const [era, setEra] = useState('all')
+  const [query, setQuery] = useState('')
   const [showAuth, setShowAuth] = useState(false)
+  const [profile, setProfile] = useState<{ username: string; avatar_url?: string } | null>(null)
 
-  const [topBooks, setTopBooks] = useState<TopBook[]>([])
-  const [hotTags, setHotTags] = useState<HotTag[]>([])
-  const [recentReviews, setRecentReviews] = useState<RecentReview[]>([])
-  const [topReaders, setTopReaders] = useState<TopReader[]>([])
-  const [loading, setLoading] = useState(true)
+  // Load profile
+  useEffect(() => {
+    if (!user) { setProfile(null); return }
+    supabase.from('profiles').select('username, avatar_url').eq('id', user.id).single()
+      .then(({ data }) => { if (data) setProfile(data) })
+  }, [user])
 
-  useEffect(() => { loadFeedData() }, [])
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase().trim()
+    return BOOKS.filter(b => {
+      const eraMatch = era === 'all' || b.era === era
+      const textMatch = !q || b.t.toLowerCase().includes(q) || b.a.toLowerCase().includes(q)
+      return eraMatch && textMatch
+    })
+  }, [era, query])
 
-  async function loadFeedData() {
-    setLoading(true)
-    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const eras = ERA_ORDER.filter(e => filtered.some(b => b.era === e))
+  const doneCount = done.size
+  const totalHours = BOOKS.filter(b => done.has(b.n)).reduce((s, b) => s + b.h, 0)
+  const leftHours = BOOKS.filter(b => !done.has(b.n)).reduce((s, b) => s + b.h, 0)
+  const pct = Math.round(doneCount / BOOKS.length * 100)
+  // A3: days remaining
+  const daysLeft = leftHours
 
-    const [
-      { data: progressData },
-      { data: tagData },
-      { data: reviewData },
-      { data: readerData },
-    ] = await Promise.all([
-      // Popular books this week (by new "done" marks)
-      supabase.from('reading_progress')
-        .select('book_n')
-        .eq('done', true)
-        .gte('updated_at', oneWeekAgo),
-
-      // Hot tags this week (by new posts)
-      supabase.from('discussion_posts')
-        .select('tag_id, tags(id, name, book_n)')
-        .gte('created_at', oneWeekAgo),
-
-      // Recent reviews with ratings
-      supabase.from('reviews')
-        .select('id, book_n, text, created_at, user_id, profiles(username, avatar_url)')
-        .order('created_at', { ascending: false })
-        .limit(6),
-
-      // Top readers (all time by reading progress)
-      supabase.from('reading_progress')
-        .select('user_id')
-        .eq('done', true),
-    ])
-
-    // Aggregate top books
-    if (progressData) {
-      const counts: Record<number, number> = {}
-      progressData.forEach((r: any) => { counts[r.book_n] = (counts[r.book_n] || 0) + 1 })
-      const sorted = Object.entries(counts)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 5)
-        .map(([book_n, count]) => ({ book_n: Number(book_n), count }))
-      setTopBooks(sorted)
-    }
-
-    // Aggregate hot tags
-    if (tagData) {
-      const counts: Record<string, { tag: any; count: number }> = {}
-      tagData.forEach((r: any) => {
-        if (!r.tags) return
-        const id = r.tags.id
-        if (!counts[id]) counts[id] = { tag: r.tags, count: 0 }
-        counts[id].count++
-      })
-      const sorted = Object.values(counts)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 8)
-        .map(({ tag, count }) => ({ id: tag.id, name: tag.name, book_n: tag.book_n, count }))
-      setHotTags(sorted)
-    }
-
-    if (reviewData && reviewData.length > 0) {
-      // Fetch ratings for these specific user+book combinations
-      const { data: ratingsData } = await supabase
-        .from('ratings')
-        .select('user_id, book_n, rating')
-        .in('user_id', reviewData.map((r: any) => r.user_id))
-      const ratingMap: Record<string, number> = {}
-      ;(ratingsData || []).forEach((r: any) => { ratingMap[`${r.user_id}_${r.book_n}`] = r.rating })
-      setRecentReviews(reviewData.map((r: any) => ({ ...r, rating: ratingMap[`${r.user_id}_${r.book_n}`] ?? null })) as any)
-    }
-
-    // Aggregate top readers
-    if (readerData) {
-      const counts: Record<string, number> = {}
-      readerData.forEach((r: any) => { counts[r.user_id] = (counts[r.user_id] || 0) + 1 })
-      const topIds = Object.entries(counts).sort(([, a], [, b]) => b - a).slice(0, 5).map(([id]) => id)
-      if (topIds.length > 0) {
-        const { data: profilesData } = await supabase.from('profiles').select('id, username, avatar_url').in('id', topIds)
-        if (profilesData) {
-          const profMap: Record<string, any> = {}
-          profilesData.forEach(p => { profMap[p.id] = p })
-          setTopReaders(topIds.map(id => ({ user_id: id, count: counts[id], profiles: profMap[id] || { username: 'Читатель' } })))
-        }
-      }
-    }
-
-    setLoading(false)
-  }
+  // ERA counts for filters
+  const eraCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    BOOKS.forEach(b => { counts[b.era] = (counts[b.era] || 0) + 1 })
+    return counts
+  }, [])
 
   return (
     <div style={{ background: C.paper, minHeight: '100vh' }}>
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
 
-      <Header activePage="home" transparent />
+      <Header activePage="library" transparent />
 
       {/* ── Hero ── */}
-      <div style={{ position: 'relative', width: '100%', height: 'clamp(360px, 50vw, 560px)', overflow: 'hidden', marginTop: -56 }}>
-        <img src="/philos-next/hero.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(10,8,4,0.2) 0%, rgba(10,8,4,0.75) 100%)' }} />
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '1.5rem', paddingTop: '5rem' }}>
-          <h1 style={{ fontFamily: C.serif, fontSize: 'clamp(2.2rem,6vw,4rem)', fontWeight: 700, color: '#fff', lineHeight: 1.1, margin: '0 0 1rem', textShadow: '0 2px 24px rgba(0,0,0,0.5)' }}>
-            Читай. Думай.<br />Обсуждай.
+      <div style={{ position: 'relative', width: '100%', height: 'clamp(200px, 28vw, 320px)', overflow: 'hidden', marginTop: -56 }}>
+        <img src="/philos-next/hero.jpg" alt=""
+          style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(10,8,4,0.3) 0%, rgba(10,8,4,0.75) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '1.5rem', paddingTop: '4rem' }}>
+          <h1 style={{ fontFamily: C.serif, fontSize: 'clamp(2rem,5vw,3rem)', fontWeight: 700, color: '#ffffff', lineHeight: 1.1, margin: '0 0 0.5rem', textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}>
+            Библиотека
           </h1>
-          <p style={{ fontSize: 'clamp(14px,2vw,17px)', color: 'rgba(255,255,255,0.65)', margin: '0 0 2rem', fontFamily: C.sans, maxWidth: 480 }}>
-            Сообщество читателей философии — рецензии, обсуждения, личный прогресс
+          <p style={{ fontSize: 'clamp(13px,2vw,15px)', color: 'rgba(255,255,255,0.6)', margin: 0, fontFamily: C.sans }}>
+            121 книга · хронологический порядок · один час в день
           </p>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <Link href="/library" style={{ padding: '11px 24px', borderRadius: 8, background: C.gold, color: '#fff', textDecoration: 'none', fontFamily: C.sans, fontSize: 14, fontWeight: 600 }}>
-              Открыть библиотеку →
-            </Link>
-            {!user && (
-              <button onClick={() => setShowAuth(true)} style={{ padding: '11px 24px', borderRadius: 8, background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', fontFamily: C.sans, fontSize: 14, cursor: 'pointer' }}>
-                Войти / Зарегистрироваться
+        </div>
+      </div>
+
+      {/* ── Stats bar ── */}
+      <div style={{ background: '#141210' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+          {[
+            { v: doneCount, l: 'прочитано' },
+            { v: BOOKS.length, l: 'книг всего' },
+            // A3: show only if user logged in
+            ...(user ? [
+              { v: totalHours, l: 'часов прочитано' },
+              { v: `~${daysLeft} дн`, l: 'осталось при 1 ч/день' },
+            ] : []),
+          ].map((s, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+              {i > 0 && <div style={{ width: 1, height: 44, background: 'rgba(255,255,255,0.08)' }} />}
+              <div style={{ padding: '0.7rem 1.75rem', textAlign: 'center' }}>
+                <div style={{ fontFamily: C.serif, fontSize: '1.5rem', color: '#ffffff', lineHeight: 1 }}>{s.v}</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 3, fontFamily: C.sans }}>{s.l}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ height: 3, background: 'rgba(255,255,255,0.06)' }}>
+          <div style={{ height: '100%', background: C.gold, width: `${pct}%`, transition: 'width 0.4s' }} />
+        </div>
+      </div>
+
+      {/* ── Sticky controls ── */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 100, background: C.paper, borderBottom: `1px solid ${C.paper3}`, boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0.75rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+          <input type="text" placeholder="Поиск по названию или автору…" value={query} onChange={e => setQuery(e.target.value)}
+            style={{ width: '100%', maxWidth: 400, padding: '8px 14px', border: `1px solid ${C.paper3}`, borderRadius: 8, background: '#ffffff', fontFamily: C.sans, fontSize: 14, color: C.ink, outline: 'none' }} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {['all', ...ERA_ORDER].map(e => (
+              <button key={e} onClick={() => setEra(e)} style={{ fontSize: 12, padding: '4px 13px', borderRadius: 20, border: `1px solid ${era === e ? C.ink : C.paper3}`, background: era === e ? C.ink : '#ffffff', color: era === e ? C.goldLt : C.ink2, cursor: 'pointer', fontWeight: era === e ? 500 : 400, fontFamily: C.sans }}>
+                {/* A4: show count */}
+                {e === 'all' ? `Все эпохи (${BOOKS.length})` : `${e} (${eraCounts[e] || 0})`}
               </button>
-            )}
+            ))}
           </div>
         </div>
       </div>
 
-      {/* ── Main content ── */}
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '2.5rem 1.5rem 4rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
-
-          {/* ── Col 1: Popular books + Hot tags ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
-            {/* Popular books this week */}
-            <section>
-              <SectionHeader title="Популярные за неделю" icon="📈" />
-              {loading ? <Skeleton /> : topBooks.length === 0 ? (
-                <EmptyState text="Пока нет активности. Начни читать!" />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {topBooks.map((item, i) => {
-                    const book = BOOKS.find(b => b.n === item.book_n)
-                    if (!book) return null
-                    return (
-                      <Link key={item.book_n} href={`/book/${item.book_n}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#fff', border: `1px solid ${C.paper3}`, borderRadius: 8, transition: 'border-color 0.15s' }}
-                        onMouseEnter={e => (e.currentTarget.style.borderColor = C.gold)}
-                        onMouseLeave={e => (e.currentTarget.style.borderColor = C.paper3)}>
-                        <span style={{ fontFamily: C.serif, fontSize: '1.25rem', color: C.ink3, fontWeight: 400, minWidth: 22, textAlign: 'center' }}>{i + 1}</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontFamily: C.serif, fontSize: 14, color: C.ink, lineHeight: 1.3, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{book.t}</div>
-                          <div style={{ fontSize: 11, color: C.ink3, fontFamily: C.sans, marginTop: 2 }}>{book.a}</div>
-                        </div>
-                        <span style={{ fontSize: 11, color: C.gold, background: C.goldLt, padding: '2px 7px', borderRadius: 10, fontFamily: C.sans, flexShrink: 0 }}>
-                          {item.count} {item.count === 1 ? 'читатель' : 'читателей'}
-                        </span>
-                      </Link>
-                    )
-                  })}
+      {/* ── Book list ── */}
+      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '1.75rem 1.5rem 4rem', background: C.paper }}>
+        {eras.map(eraName => {
+          const group = filtered.filter(b => b.era === eraName)
+          const meta = ERA_META[eraName as keyof typeof ERA_META]
+          const clusters: Array<{ groupName?: string; books: typeof group }> = []
+          let i = 0
+          while (i < group.length) {
+            if ((group[i] as any).group) {
+              const gName = (group[i] as any).group
+              const run: typeof group = []
+              while (i < group.length && (group[i] as any).group === gName) run.push(group[i++])
+              clusters.push({ groupName: gName, books: run })
+            } else {
+              const run: typeof group = []
+              while (i < group.length && !(group[i] as any).group) run.push(group[i++])
+              clusters.push({ books: run })
+            }
+          }
+          return (
+            <section key={eraName} style={{ marginBottom: '2.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: `1px solid ${C.paper3}` }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: meta.color, flexShrink: 0 }} />
+                <div>
+                  {/* A2: bigger era title */}
+                  <h2 style={{ fontFamily: C.serif, fontSize: '1.3rem', fontWeight: 500, margin: 0, color: C.ink }}>{eraName}</h2>
+                  <span style={{ fontSize: 11, color: C.ink3, fontFamily: C.sans }}>{meta.dates} · {group.length} книг</span>
                 </div>
-              )}
-            </section>
-
-            {/* Hot tags */}
-            <section>
-              <SectionHeader title="Горячие темы" icon="🔥" />
-              {loading ? <Skeleton rows={2} /> : hotTags.length === 0 ? (
-                <EmptyState text="Начни обсуждение на странице любой книги" />
-              ) : (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {hotTags.map(tag => {
-                    const book = BOOKS.find(b => b.n === tag.book_n)
-                    return (
-                      <Link key={tag.id} href={`/book/${tag.book_n}`} title={book?.t} style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, border: `1px solid ${C.paper3}`, background: '#fff', color: C.ink2, fontFamily: C.sans, fontSize: 13, transition: 'all 0.15s' }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = C.gold; (e.currentTarget as HTMLAnchorElement).style.color = C.gold }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = C.paper3; (e.currentTarget as HTMLAnchorElement).style.color = C.ink2 }}>
-                        <span style={{ opacity: 0.5 }}>#</span>{tag.name}
-                        <span style={{ fontSize: 10, background: C.paper2, color: C.ink3, padding: '1px 5px', borderRadius: 8 }}>{tag.count}</span>
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </section>
-          </div>
-
-          {/* ── Col 2: Recent reviews ── */}
-          <section>
-            <SectionHeader title="Последние рецензии" icon="✍️" />
-            {loading ? <Skeleton rows={4} /> : recentReviews.length === 0 ? (
-              <EmptyState text="Рецензий пока нет" />
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {recentReviews.map(r => {
-                  const book = BOOKS.find(b => b.n === r.book_n)
-                  const username = r.profiles?.username || 'Читатель'
-                  return (
-                    <Link key={r.id} href={`/book/${r.book_n}`} style={{ textDecoration: 'none', padding: '12px 14px', background: '#fff', border: `1px solid ${C.paper3}`, borderRadius: 10, display: 'block', transition: 'border-color 0.15s' }}
-                      onMouseEnter={e => (e.currentTarget.style.borderColor = C.gold)}
-                      onMouseLeave={e => (e.currentTarget.style.borderColor = C.paper3)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: `hsl(${[...username].reduce((a, c) => a + c.charCodeAt(0), 0) % 360},35%,40%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
-                          {r.profiles?.avatar_url
-                            ? <img src={r.profiles.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                            : <span style={{ fontSize: 10, fontWeight: 600, color: '#fff', fontFamily: C.sans }}>{username[0].toUpperCase()}</span>
-                          }
-                        </div>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: C.ink2, fontFamily: C.sans }}>{username}</span>
-                        {(r as any).rating && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: C.goldLt, color: C.gold, fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 20, fontFamily: C.sans }}>
-                            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                            {(r as any).rating}/10
-                          </span>
-                        )}
-                        <span style={{ fontSize: 11, color: C.ink3, fontFamily: C.sans, marginLeft: 'auto' }}>
-                          {new Date(r.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
-                        </span>
-                      </div>
-                      <div style={{ fontFamily: C.serif, fontSize: 13, color: C.ink3, marginBottom: 4 }}>{book?.t}</div>
-                      <p style={{ fontSize: 13, color: C.ink, margin: 0, fontFamily: C.sans, lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
-                        {r.text}
-                      </p>
-                    </Link>
-                  )
-                })}
               </div>
-            )}
-          </section>
 
-          {/* ── Col 3: Top readers + Collections ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {clusters.map((cluster, ci) => (
+                <div key={ci}>
+                  {cluster.groupName && (
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '10px 12px 6px', background: C.paper2, border: `1px dashed ${C.paper3}`, borderBottom: 'none', borderRadius: '8px 8px 0 0' }}>
+                      <span style={{ fontFamily: C.serif, fontStyle: 'italic', fontSize: 13, color: C.ink2 }}>{cluster.groupName}</span>
+                      <span style={{ fontSize: 10, color: C.ink3, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: C.sans }}>{cluster.books.length} текстов · в рекомендованном порядке</span>
+                    </div>
+                  )}
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8,
+                    ...(cluster.groupName ? { padding: '8px 10px 10px', background: C.paper2, border: `1px dashed ${C.paper3}`, borderTop: 'none', borderRadius: '0 0 8px 8px', marginBottom: 12 } : { marginBottom: 8 })
+                  }}>
+                    {cluster.books.map(book => {
+                      const isDone = done.has(book.n)
+                      const isHov = hovered === book.n
+                      return (
+                        // A6: entire card is clickable, with hover effect
+                        <Link
+                          key={book.n}
+                          href={`/book/${book.n}`}
+                          onMouseEnter={() => onEnter(book.n)}
+                          onMouseLeave={onLeave}
+                          style={{
+                            background: isDone ? C.paper2 : '#ffffff',
+                            border: `1px solid ${isHov ? C.gold : C.paper3}`,
+                            borderRadius: 8, padding: '11px 12px',
+                            display: 'flex', flexDirection: 'column', gap: 6,
+                            opacity: isDone ? 0.72 : 1,
+                            textDecoration: 'none',
+                            boxShadow: isHov ? '0 4px 16px rgba(0,0,0,0.10)' : '0 1px 3px rgba(0,0,0,0.04)',
+                            transform: isHov ? 'translateY(-2px)' : 'translateY(0)',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {/* top row: number + check */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 10, color: C.ink3, minWidth: 20, fontFamily: C.sans }}>{book.n}</span>
+                            <button
+                              onClick={e => { e.preventDefault(); e.stopPropagation(); toggle(book.n) }}
+                              style={{ marginLeft: 'auto', width: 20, height: 20, borderRadius: '50%', border: `1.5px solid ${isDone ? '#1D9E75' : C.paper3}`, background: isDone ? '#1D9E75' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, padding: 0 }}
+                              aria-label={isDone ? 'Отметить непрочитанным' : 'Отметить прочитанным'}
+                            >
+                              {isDone && <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                            </button>
+                          </div>
 
-            {/* Top readers */}
-            <section>
-              <SectionHeader title="Рейтинг читателей" icon="🏆" />
-              {loading ? <Skeleton /> : topReaders.length === 0 ? (
-                <EmptyState text="Зарегистрируйся и отмечай прочитанные книги" />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {topReaders.map((reader, i) => {
-                    const username = reader.profiles?.username || 'Читатель'
-                    const medals = ['🥇', '🥈', '🥉']
-                    return (
-                      <div key={reader.user_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#fff', border: `1px solid ${C.paper3}`, borderRadius: 8 }}>
-                        <span style={{ fontSize: 16, minWidth: 22, textAlign: 'center' }}>{medals[i] || `${i + 1}`}</span>
-                        <div style={{ width: 28, height: 28, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: `hsl(${[...username].reduce((a, c) => a + c.charCodeAt(0), 0) % 360},35%,40%)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {reader.profiles?.avatar_url
-                            ? <img src={reader.profiles.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                            : <span style={{ fontSize: 11, fontWeight: 600, color: '#fff', fontFamily: C.sans }}>{username[0].toUpperCase()}</span>
-                          }
-                        </div>
-                        <span style={{ flex: 1, fontFamily: C.sans, fontSize: 13, fontWeight: 500, color: C.ink }}>{username}</span>
-                        <span style={{ fontSize: 12, color: C.ink3, fontFamily: C.sans }}>
-                          {reader.count} {reader.count === 1 ? 'книга' : reader.count < 5 ? 'книги' : 'книг'}
-                        </span>
-                      </div>
-                    )
-                  })}
+                          {/* A2: title larger, author smaller and muted */}
+                          <div style={{ flex: 1 }}>
+                            <span style={{ fontFamily: C.serif, fontSize: 15, fontWeight: 500, color: isDone ? C.ink3 : C.ink, lineHeight: 1.3, textDecoration: isDone ? 'line-through' : 'none', display: 'block' }}>
+                              {book.t}
+                            </span>
+                            <p style={{ fontSize: 11, color: C.ink3, marginTop: 4, fontFamily: C.sans, margin: '4px 0 0', letterSpacing: '0.01em' }}>{book.a}</p>
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: `1px solid ${C.paper3}` }}>
+                            <span style={{ fontSize: 11, color: C.ink3, fontFamily: C.sans }}>{book.y}</span>
+                            <span style={{ fontSize: 11, fontWeight: 500, color: C.gold, background: C.goldLt, padding: '1px 7px', borderRadius: 10, fontFamily: C.sans }}>{book.h} ч</span>
+                          </div>
+                        </Link>
+                      )
+                    })}
+                  </div>
                 </div>
-              )}
+              ))}
             </section>
-
-            {/* Personal collections */}
-            <section>
-              <CollectionsSection userId={user?.id ?? null} onAuthRequired={() => setShowAuth(true)} compact />
-            </section>
-
-          </div>
-        </div>
+          )
+        })}
+        {filtered.length === 0 && (
+          <p style={{ fontFamily: C.serif, fontStyle: 'italic', color: C.ink3, fontSize: '1.1rem' }}>Ничего не найдено</p>
+        )}
       </main>
 
       <footer style={{ textAlign: 'center', padding: '1.5rem', fontSize: 12, color: C.ink3, borderTop: `1px solid ${C.paper3}`, fontFamily: C.sans, background: C.paper }}>
-        <Link href="/library" style={{ color: C.gold, textDecoration: 'none', marginRight: 16 }}>Библиотека</Link>
-        Философский канон · {new Date().getFullYear()}
+        Философский канон · прогресс сохраняется в браузере
       </footer>
-    </div>
-  )
-}
-
-// ── Small reusable UI ──────────────────────────────────────────────
-function SectionHeader({ title, icon }: { title: string; icon: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.85rem', paddingBottom: '0.6rem', borderBottom: `1px solid ${C.paper3}` }}>
-      <span style={{ fontSize: 15 }}>{icon}</span>
-      <h2 style={{ fontFamily: C.serif, fontSize: '1.1rem', fontWeight: 500, color: C.ink, margin: 0 }}>{title}</h2>
-    </div>
-  )
-}
-
-function EmptyState({ text }: { text: string }) {
-  return (
-    <p style={{ fontSize: 13, color: C.ink3, fontFamily: C.sans, fontStyle: 'italic', padding: '1rem', background: C.paper2, borderRadius: 8, margin: 0, textAlign: 'center' }}>{text}</p>
-  )
-}
-
-function Skeleton({ rows = 3 }: { rows?: number }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {Array.from({ length: rows }, (_, i) => (
-        <div key={i} style={{ height: 52, borderRadius: 8, background: `linear-gradient(90deg, ${C.paper2} 0%, ${C.paper3} 50%, ${C.paper2} 100%)`, backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
-      ))}
     </div>
   )
 }
