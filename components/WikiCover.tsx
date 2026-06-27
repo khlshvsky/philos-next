@@ -103,23 +103,47 @@ export default function WikiCover({ title, author, year, size = 120 }: WikiCover
 
   const w = size
   const h = Math.round(size * 1.4)
+  const cacheKey = `cover_${title}`
 
   useEffect(() => {
     let cancelled = false
+
     async function fetchCover() {
-      // Try Open Library first (actual book covers)
+      // 1. Check localStorage cache first
+      try {
+        const cached = localStorage.getItem(cacheKey)
+        if (cached) {
+          if (cached === 'error') { setError(true); return }
+          setImgUrl(cached)
+          return
+        }
+      } catch {}
+
+      // 2. Fetch from Open Library
       const olUrl = await fetchOpenLibraryCover(title, author)
-      if (olUrl && !cancelled) { setImgUrl(olUrl); return }
+      if (olUrl && !cancelled) {
+        setImgUrl(olUrl)
+        try { localStorage.setItem(cacheKey, olUrl) } catch {}
+        return
+      }
 
-      // Fall back to Wikipedia
+      // 3. Fall back to Wikipedia
       const wikiUrl = await fetchWikipediaCover(title, author)
-      if (wikiUrl && !cancelled) { setImgUrl(wikiUrl); return }
+      if (wikiUrl && !cancelled) {
+        setImgUrl(wikiUrl)
+        try { localStorage.setItem(cacheKey, wikiUrl) } catch {}
+        return
+      }
 
-      if (!cancelled) setError(true)
+      if (!cancelled) {
+        setError(true)
+        try { localStorage.setItem(cacheKey, 'error') } catch {}
+      }
     }
+
     fetchCover()
     return () => { cancelled = true }
-  }, [title, author])
+  }, [title])
 
   if (error) return <Initials author={author} year={year} w={w} h={h} />
 
