@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { BOOKS } from '@/lib/books'
 import AuthModal from '@/components/AuthModal'
 import CollectionsSection from '@/components/CollectionsSection'
-import { useNotifCount } from '@/lib/useNotifCount'
+import Header from '@/components/Header'
 
 const C = {
   ink: '#1a1814', ink2: '#4a4640', ink3: '#8a8480',
@@ -22,22 +22,14 @@ interface RecentReview { id: string; book_n: number; text: string; created_at: s
 interface TopReader { user_id: string; count: number; profiles: { username: string; avatar_url?: string } }
 
 export default function HomePage() {
-  const { user, loading: userLoading, signOut } = useUser()
+  const { user } = useUser()
   const [showAuth, setShowAuth] = useState(false)
-  const [profile, setProfile] = useState<{ username: string; avatar_url?: string } | null>(null)
 
   const [topBooks, setTopBooks] = useState<TopBook[]>([])
   const [hotTags, setHotTags] = useState<HotTag[]>([])
   const [recentReviews, setRecentReviews] = useState<RecentReview[]>([])
   const [topReaders, setTopReaders] = useState<TopReader[]>([])
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (user) {
-      supabase.from('profiles').select('username, avatar_url').eq('id', user.id).single()
-        .then(({ data }) => { if (data) setProfile(data) })
-    } else setProfile(null)
-  }, [user])
 
   useEffect(() => { loadFeedData() }, [])
 
@@ -130,55 +122,17 @@ export default function HomePage() {
     setLoading(false)
   }
 
-  const notifCount = useNotifCount(user?.id)
-
-  const navStyle: React.CSSProperties = { position: 'absolute', top: 16, right: 20, zIndex: 10, display: 'flex', alignItems: 'center', gap: 10 }
-
   return (
     <div style={{ background: C.paper, minHeight: '100vh' }}>
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
 
+      <Header activePage="home" transparent />
+
       {/* ── Hero ── */}
-      <div style={{ position: 'relative', width: '100%', height: 'clamp(360px, 50vw, 560px)', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', width: '100%', height: 'clamp(360px, 50vw, 560px)', overflow: 'hidden', marginTop: -56 }}>
         <img src="/philos-next/hero.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(10,8,4,0.2) 0%, rgba(10,8,4,0.75) 100%)' }} />
-
-        {/* Auth */}
-        <div style={navStyle}>
-          {!userLoading && (user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {notifCount > 0 && (
-                <Link href="/notifications" style={{ position: 'relative', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                  <span style={{ position: 'absolute', top: -3, right: -3, background: '#e74c3c', color: '#fff', fontSize: 9, fontWeight: 700, fontFamily: C.sans, borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {notifCount > 9 ? '9+' : notifCount}
-                  </span>
-                </Link>
-              )}
-              <Link href="/profile" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, padding: '5px 12px 5px 6px' }}>
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }} alt="" />
-                ) : (
-                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: C.gold, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, color: '#fff', fontFamily: C.sans }}>
-                    {(profile?.username || user.email || '?')[0].toUpperCase()}
-                  </div>
-                )}
-                <span style={{ fontSize: 13, color: '#fff', fontFamily: C.sans, fontWeight: 500 }}>{profile?.username || user.email?.split('@')[0]}</span>
-              </Link>
-              <button onClick={signOut} style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: C.sans }}>Выйти</button>
-            </div>
-          ) : (
-            <button onClick={() => setShowAuth(true)} style={{ fontSize: 13, color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 20, padding: '6px 16px', cursor: 'pointer', fontFamily: C.sans, fontWeight: 500, backdropFilter: 'blur(8px)' }}>
-              Войти
-            </button>
-          ))}
-        </div>
-
-        {/* Hero text */}
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '1.5rem' }}>
-          <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.gold, marginBottom: 14, display: 'inline-block', background: 'rgba(10,8,4,0.45)', padding: '4px 14px', borderRadius: 20, backdropFilter: 'blur(4px)' }}>
-            Философский канон
-          </span>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '1.5rem', paddingTop: '5rem' }}>
           <h1 style={{ fontFamily: C.serif, fontSize: 'clamp(2.2rem,6vw,4rem)', fontWeight: 700, color: '#fff', lineHeight: 1.1, margin: '0 0 1rem', textShadow: '0 2px 24px rgba(0,0,0,0.5)' }}>
             Читай. Думай.<br />Обсуждай.
           </h1>
@@ -186,11 +140,11 @@ export default function HomePage() {
             Сообщество читателей философии — рецензии, обсуждения, личный прогресс
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <Link href="/library" style={{ padding: '11px 24px', borderRadius: 8, background: C.gold, color: '#fff', textDecoration: 'none', fontFamily: C.sans, fontSize: 14, fontWeight: 600, boxShadow: '0 2px 12px rgba(184,134,11,0.4)' }}>
+            <Link href="/library" style={{ padding: '11px 24px', borderRadius: 8, background: C.gold, color: '#fff', textDecoration: 'none', fontFamily: C.sans, fontSize: 14, fontWeight: 600 }}>
               Открыть библиотеку →
             </Link>
             {!user && (
-              <button onClick={() => setShowAuth(true)} style={{ padding: '11px 24px', borderRadius: 8, background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', fontFamily: C.sans, fontSize: 14, cursor: 'pointer', backdropFilter: 'blur(8px)' }}>
+              <button onClick={() => setShowAuth(true)} style={{ padding: '11px 24px', borderRadius: 8, background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', fontFamily: C.sans, fontSize: 14, cursor: 'pointer' }}>
                 Войти / Зарегистрироваться
               </button>
             )}
