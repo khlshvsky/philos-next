@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { CornerDownLeft, Heart } from 'lucide-react'
 import Header from '@/components/Header'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/lib/useUser'
@@ -117,9 +118,8 @@ export default function NotificationsPage() {
   }
 
   const typeIcon = (type: NotifType) => {
-    if (type === 'reply') return '↩'
-    if (type === 'review_like') return '♥'
-    return '♥'
+    if (type === 'reply') return <CornerDownLeft size={15} strokeWidth={2.5} />
+    return <Heart size={15} strokeWidth={2.5} fill="currentColor" />
   }
 
   if (!user) return (
@@ -177,9 +177,9 @@ export default function NotificationsPage() {
                     </span>
                   </div>
 
-                  <span style={{ fontSize: 16, flexShrink: 0, color: n.type === 'reply' ? C.gold : '#e74c3c', marginTop: 4 }}>
+                  <div style={{ flexShrink: 0, color: n.type === 'reply' ? C.gold : '#e74c3c', marginTop: 4, display: 'flex' }}>
                     {typeIcon(n.type)}
-                  </span>
+                  </div>
                 </Link>
               )
             })}
