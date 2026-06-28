@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import Link from 'next/link'
+import { TrendingUp, Flame, PenLine, Trophy, Medal } from 'lucide-react'
 import { useUser } from '@/lib/useUser'
 import { supabase } from '@/lib/supabase'
 import { BOOKS } from '@/lib/books'
@@ -161,7 +162,7 @@ export default function HomePage() {
 
             {/* Popular books this week */}
             <section>
-              <SectionHeader title="Популярные за неделю" icon="📈" />
+              <SectionHeader title="Популярные за неделю" icon={<TrendingUp size={15} strokeWidth={2.5} color={C.gold} />} />
               {loading ? <Skeleton /> : topBooks.length === 0 ? (
                 <EmptyState text="Пока нет активности. Начни читать!" />
               ) : (
@@ -190,7 +191,7 @@ export default function HomePage() {
 
             {/* Hot tags */}
             <section>
-              <SectionHeader title="Горячие темы" icon="🔥" />
+              <SectionHeader title="Горячие темы" icon={<Flame size={15} strokeWidth={2.5} color={C.gold} />} />
               {loading ? <Skeleton rows={2} /> : hotTags.length === 0 ? (
                 <EmptyState text="Начни обсуждение на странице любой книги" />
               ) : (
@@ -213,7 +214,7 @@ export default function HomePage() {
 
           {/* ── Col 2: Recent reviews ── */}
           <section>
-            <SectionHeader title="Последние рецензии" icon="✍️" />
+            <SectionHeader title="Последние рецензии" icon={<PenLine size={15} strokeWidth={2.5} color={C.gold} />} />
             {loading ? <Skeleton rows={4} /> : recentReviews.length === 0 ? (
               <EmptyState text="Рецензий пока нет" />
             ) : (
@@ -259,17 +260,17 @@ export default function HomePage() {
 
             {/* Top readers */}
             <section>
-              <SectionHeader title="Рейтинг читателей" icon="🏆" />
+              <SectionHeader title="Рейтинг читателей" icon={<Trophy size={15} strokeWidth={2.5} color={C.gold} />} />
               {loading ? <Skeleton /> : topReaders.length === 0 ? (
                 <EmptyState text="Зарегистрируйся и отмечай прочитанные книги" />
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {topReaders.map((reader, i) => {
                     const username = reader.profiles?.username || 'Читатель'
-                    const medals = ['🥇', '🥈', '🥉']
+                    const medals = ['1', '2', '3']
                     return (
                       <div key={reader.user_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#fff', border: `1px solid ${C.paper3}`, borderRadius: 8 }}>
-                        <span style={{ fontSize: 16, minWidth: 22, textAlign: 'center' }}>{medals[i] || `${i + 1}`}</span>
+                        <span style={{ fontFamily: C.sans, fontSize: 13, fontWeight: 700, minWidth: 22, textAlign: 'center', color: i === 0 ? '#b8860b' : i === 1 ? '#8a8480' : i === 2 ? '#cd7f32' : C.ink3 }}>{i + 1}</span>
                         <div style={{ width: 28, height: 28, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: `hsl(${[...username].reduce((a, c) => a + c.charCodeAt(0), 0) % 360},35%,40%)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {reader.profiles?.avatar_url
                             ? <img src={reader.profiles.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
@@ -305,10 +306,10 @@ export default function HomePage() {
 }
 
 // ── Small reusable UI ──────────────────────────────────────────────
-function SectionHeader({ title, icon }: { title: string; icon: string }) {
+function SectionHeader({ title, icon }: { title: string; icon: ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.85rem', paddingBottom: '0.6rem', borderBottom: `1px solid ${C.paper3}` }}>
-      <span style={{ fontSize: 15 }}>{icon}</span>
+      {icon}
       <h2 style={{ fontFamily: C.serif, fontSize: '1.1rem', fontWeight: 500, color: C.ink, margin: 0 }}>{title}</h2>
     </div>
   )
