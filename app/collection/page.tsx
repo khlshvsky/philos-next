@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { Pencil, Share2, Check, Plus, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { BOOKS } from '@/lib/books'
 import WikiCover from '@/components/WikiCover'
@@ -194,7 +195,7 @@ export default function CollectionPage() {
                 {isOwner && (
                   <button onClick={() => { setEditTitle(collection.title); setEditDesc(collection.description || ''); setEditingMeta(true) }}
                     style={{ marginLeft: 12, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.35)', verticalAlign: 'middle' }} title="Редактировать">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <Pencil size={16} strokeWidth={2.5} />
                   </button>
                 )}
               </h1>
@@ -213,11 +214,11 @@ export default function CollectionPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', fontFamily: C.sans }}>{collection.books.length} книг · ~{totalHours} часов чтения</span>
             <button onClick={handleShare} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: shared ? C.gold : 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 13, fontFamily: C.sans }}>
-              {shared ? <><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Скопировано</> : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Поделиться</>}
+              {shared ? <><Check size={13} strokeWidth={2.5} />Скопировано</> : <><Share2 size={13} strokeWidth={2.5} />Поделиться</>}
             </button>
             {!isOwner && user && (
               <button onClick={copyToSelf} disabled={copying} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.gold}`, background: copied ? C.gold : 'transparent', color: copied ? '#fff' : C.gold, cursor: 'pointer', fontSize: 13, fontFamily: C.sans }}>
-                {copied ? '✓ Добавлено' : copying ? '...' : '+ Добавить себе'}
+                {copied ? <><Check size={13} strokeWidth={2.5} />Добавлено</> : copying ? '...' : <><Plus size={13} strokeWidth={2.5} />Добавить себе</>}
               </button>
             )}
           </div>
@@ -230,7 +231,7 @@ export default function CollectionPage() {
           <div style={{ marginBottom: '1.5rem' }}>
             {!addingBook ? (
               <button onClick={() => setAddingBook(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: `1px dashed ${C.gold}`, background: 'transparent', color: C.gold, cursor: 'pointer', fontFamily: C.sans, fontSize: 13 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <Plus size={13} strokeWidth={2.5} />
                 Добавить книги
               </button>
             ) : (
@@ -245,7 +246,7 @@ export default function CollectionPage() {
                           style={{ width: '100%', padding: '9px 14px', background: 'none', border: 'none', borderBottom: `1px solid ${C.paper3}`, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}
                           onMouseEnter={e => (e.currentTarget.style.background = C.goldLt)}
                           onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.gold} strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                          <Plus size={12} strokeWidth={2.5} color={C.gold} />
                           <span style={{ fontFamily: C.serif, fontSize: 14, color: C.ink }}>{b.t}</span>
                           <span style={{ fontSize: 12, color: C.ink3, fontFamily: C.sans }}>— {b.a}</span>
                         </button>
@@ -344,7 +345,7 @@ export default function CollectionPage() {
 
         <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: `1px solid ${C.paper3}` }}>
           <Link href="/library" style={{ fontSize: 13, color: C.gold, textDecoration: 'none', fontFamily: C.sans, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <ArrowLeft size={14} strokeWidth={2.5} />
             Открыть библиотеку
           </Link>
         </div>
