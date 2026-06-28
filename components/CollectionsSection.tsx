@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { Pencil, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { BOOKS } from '@/lib/books'
 
@@ -235,7 +236,7 @@ function CollectionCard({ collection, userId, onUpdate, onAuthRequired }: {
           {isOwner && (
             <button onClick={() => setExpanded(x => !x)} title="Редактировать"
               style={{ width: 28, height: 28, borderRadius: '50%', border: `1px solid ${C.paper3}`, background: expanded ? C.ink : '#fff', color: expanded ? C.goldLt : C.ink3, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <Pencil size={12} strokeWidth={2.5} />
             </button>
           )}
           {previewBooks.length > 0 && (
@@ -305,7 +306,7 @@ function CollectionCard({ collection, userId, onUpdate, onAuthRequired }: {
                     style={{ width: '100%', padding: '8px 12px', background: 'none', border: 'none', borderBottom: `1px solid ${C.paper3}`, cursor: 'pointer', textAlign: 'left', fontFamily: C.sans, fontSize: 13, color: C.ink, display: 'flex', alignItems: 'center', gap: 8 }}
                     onMouseEnter={e => (e.currentTarget.style.background = C.goldLt)}
                     onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.gold} strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <Plus size={12} strokeWidth={2.5} color={C.gold} />
                     <span style={{ fontFamily: C.serif, fontSize: 14 }}>{b.t}</span>
                     <span style={{ color: C.ink3, fontSize: 12 }}>— {b.a}</span>
                   </button>
