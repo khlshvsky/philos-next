@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { Users, Check, Share2, Pencil, Copy } from 'lucide-react'
 import WikiCover from '@/components/WikiCover'
 import EraTag from '@/components/EraTag'
 import StarRating from '@/components/StarRating'
@@ -228,7 +229,7 @@ export default function BookDetail({ book, prev, next }: Props) {
               {/* B3: reader count */}
               {readCount > 0 && (
                 <span style={{ fontSize: 11, color: C.ink3, fontFamily: C.sans, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  <Users size={12} strokeWidth={2.5} />
                   {readCount} {readCount === 1 ? 'читатель' : readCount < 5 ? 'читателя' : 'читателей'}
                 </span>
               )}
@@ -258,17 +259,19 @@ export default function BookDetail({ book, prev, next }: Props) {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <button onClick={toggleDone} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 8, background: isDone ? '#1D9E75' : C.ink, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: C.sans, transition: 'background 0.15s' }}>
-                {isDone ? (<><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Прочитано</>) : '+ Отметить прочитанным'}
+                {isDone
+                  ? <><Check size={14} strokeWidth={2.5} />Прочитано</>
+                  : '+ Отметить прочитанным'
+                }
               </button>
               <span style={{ fontSize: 13, fontWeight: 500, color: C.gold, background: C.goldLt, padding: '6px 12px', borderRadius: 8, fontFamily: C.sans }}>~{book.h} часов</span>
 
               {/* C5: share button */}
               <button onClick={handleShare} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 8, border: `1px solid ${C.paper3}`, background: '#fff', color: shared ? '#1D9E75' : C.ink2, cursor: 'pointer', fontSize: 13, fontFamily: C.sans, transition: 'all 0.15s' }}>
-                {shared ? (
-                  <><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Скопировано</>
-                ) : (
-                  <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Поделиться</>
-                )}
+                {shared
+                  ? <><Check size={14} strokeWidth={2.5} />Скопировано</>
+                  : <><Share2 size={14} strokeWidth={2.5} />Поделиться</>
+                }
               </button>
             </div>
           </div>
@@ -298,7 +301,7 @@ export default function BookDetail({ book, prev, next }: Props) {
                   </button>
                 ) : (
                   <button onClick={() => setReviewEditing(true)} style={{ fontSize: 12, padding: '3px 12px', borderRadius: 20, border: `1px solid ${C.paper3}`, background: '#fff', color: C.ink2, cursor: 'pointer', fontFamily: C.sans, display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <Pencil size={12} strokeWidth={2.5} />
                     {localReview ? 'Редактировать' : 'Написать рецензию'}
                   </button>
                 )}
