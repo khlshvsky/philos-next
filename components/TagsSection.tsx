@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { Plus, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import DiscussionTree from './DiscussionTree'
 
@@ -113,7 +114,10 @@ export default function TagsSection({ bookN, userId, onAuthRequired }: Props) {
               onClick={() => { if (!userId) { onAuthRequired(); return } setAdding(a => !a); setError('') }}
               style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, border: `1px solid ${C.paper3}`, background: adding ? C.ink : '#fff', color: adding ? C.goldLt : C.ink2, cursor: 'pointer', fontSize: 12, fontFamily: C.sans }}
             >
-              {adding ? '× Отмена' : '+ Новая тема'}
+              {adding
+                ? <><X size={13} strokeWidth={2.5} />Отмена</>
+                : <><Plus size={13} strokeWidth={2.5} />Новая тема</>
+              }
             </button>
           </div>
         </div>
