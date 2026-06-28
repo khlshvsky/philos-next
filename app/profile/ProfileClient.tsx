@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { Pencil } from 'lucide-react'
 import Header from '@/components/Header'
 import { useUser } from '@/lib/useUser'
 import { supabase } from '@/lib/supabase'
@@ -132,7 +133,7 @@ export default function ProfileClient() {
                 onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
                 onMouseLeave={e => (e.currentTarget.style.opacity = '0')}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><path d="M15.232 5.232l3.536 3.536M9 13l6.536-6.536a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H7v-3.414a2 2 0 01.586-1.414z"/></svg>
+                <Pencil size={20} strokeWidth={2.5} color="white" />
               </div>
             </div>
             {uploading && (
